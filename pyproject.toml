@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "exercicio4"
+version = "0.1.0"
+description = ""
+authors = ["Marcelo Schneider <schenider.fei@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyspark = "^3.4.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
