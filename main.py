@@ -1,7 +1,6 @@
 import os
-from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import split, col
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.functions import split, col, trim
 
 
 SOURCES_DIR = os.path.join(os.getcwd(), "sources")
@@ -59,3 +58,9 @@ def filter_columns(df: DataFrame, columns: list):
 def clean_banco_name(df: DataFrame):
     cleaned_df = df.select(df.Segmento, df.CNPJ, split(col("Nome"), "-")[0].alias("Nome"))
     return cleaned_df
+
+
+def remove_spaces(df: DataFrame, column: str):
+    column_obj = getattr(df, column)
+    trimed_df = df.withColumn(column, trim(column_obj))
+    return trimed_df

@@ -66,3 +66,10 @@ def test_clean_banco_name():
     expect = "BANCO DO BRASIL"
     assert expect in cleaned_data.first()["Nome"]
 
+
+def test_remove_spaces():
+    bancos_data = main.extract_bancos_data()
+    cleaned_data = main.clean_banco_name(bancos_data)
+    cleaned_data = main.remove_spaces(cleaned_data, "Nome")
+    expect = "BANCO DO BRASIL"
+    assert cleaned_data.first()['Nome'] == expect
