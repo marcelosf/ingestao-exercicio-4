@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.10"
 pyspark = "^3.4.1"
 pytest = "^7.4.0"
+ftfy = "^6.1.1"
+chardet = "^5.2.0"
 
 
 [build-system]

@@ -1,5 +1,7 @@
 import os
 from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame
+from pyspark.sql.functions import split, explode
 
 
 SOURCES_DIR = os.path.join(os.getcwd(), "sources")
@@ -10,8 +12,8 @@ def get_spark_session():
     return spark
 
 
-def read_source(session: SparkSession, path: str, delimiter: str):
-    df = session.read.csv(path=path, header=True, sep=delimiter)
+def read_source(session: SparkSession, path: str, delimiter: str, encoding=None):
+    df = session.read.csv(path=path, header=True, sep=delimiter, encoding=encoding)
     return df
 
 
@@ -25,10 +27,10 @@ def match(name1: str, name2: str):
     return part_to_compare in name2
 
 
-def extract_data(path: str, delimiter: str):
+def extract_data(path: str, delimiter: str, encoding=None):
     session = get_spark_session()
     path = os.path.join(SOURCES_DIR, path)
-    data = read_source(session, path, delimiter=delimiter)
+    data = read_source(session, path, delimiter=delimiter, encoding=encoding)
     return data    
 
 
@@ -37,9 +39,24 @@ def extract_bancos_data():
 
 
 def extract_reclamacoes_data():
-    return extract_data(path="Reclamacoes", delimiter=";")
+    return extract_data(path="Reclamacoes", delimiter=";", encoding="ISO-8859-1")
 
 
 def extract_empregados_data():
     return extract_data(path="Empregados", delimiter="|")
 
+
+def rename_columns(df: DataFrame, columns_to_rename: list):
+    reclamacoes_with_columns_renamed = df.withColumnsRenamed(columns_to_rename)
+    return reclamacoes_with_columns_renamed
+
+
+def filter_columns(df: DataFrame, columns: list):
+    selected_columns = df.select(columns)
+    return selected_columns
+
+
+def clean_banco_name(df: DataFrame):
+    cleaned_df = df.select(df.Segmento, df.CNPJ, split(df.Nome, "-").alias("nome_array"))
+    cleaned_df = cleaned_df.select(cleaned_df.Segmento, cleaned_df.CNPJ, explode(cleaned_df.nome_array).alias("Nome"))
+    return cleaned_df
