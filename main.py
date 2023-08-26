@@ -1,7 +1,7 @@
 import os
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import split, explode
+from pyspark.sql.functions import split, col
 
 
 SOURCES_DIR = os.path.join(os.getcwd(), "sources")
@@ -57,6 +57,5 @@ def filter_columns(df: DataFrame, columns: list):
 
 
 def clean_banco_name(df: DataFrame):
-    cleaned_df = df.select(df.Segmento, df.CNPJ, split(df.Nome, "-").alias("nome_array"))
-    cleaned_df = cleaned_df.select(cleaned_df.Segmento, cleaned_df.CNPJ, explode(cleaned_df.nome_array).alias("Nome"))
+    cleaned_df = df.select(df.Segmento, df.CNPJ, split(col("Nome"), "-")[0].alias("Nome"))
     return cleaned_df
