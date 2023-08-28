@@ -1,4 +1,5 @@
 import os
+from typing import List
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import split, col, trim
 
@@ -46,8 +47,8 @@ def extract_empregados_data():
 
 
 def rename_columns(df: DataFrame, columns_to_rename: list):
-    reclamacoes_with_columns_renamed = df.withColumnsRenamed(columns_to_rename)
-    return reclamacoes_with_columns_renamed
+    with_columns_renamed = df.withColumnsRenamed(columns_to_rename)
+    return with_columns_renamed
 
 
 def filter_columns(df: DataFrame, columns: list):
@@ -64,3 +65,15 @@ def remove_spaces(df: DataFrame, column: str):
     column_obj = getattr(df, column)
     trimed_df = df.withColumn(column, trim(column_obj))
     return trimed_df
+
+
+def group_by_name(df: DataFrame, colum_to_group: str, colum_to_sum: str):
+    grouped_df = df.groupBy(colum_to_group).sum(colum_to_sum)
+    return grouped_df
+
+
+def join_tables(main_table: DataFrame, tables_to_join: List[DataFrame]) -> DataFrame:
+    for table, column in tables_to_join:
+        main_table = main_table.join(table, column, "outer")
+    print(main_table.columns)
+    return main_table

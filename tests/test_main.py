@@ -73,3 +73,38 @@ def test_remove_spaces():
     cleaned_data = main.remove_spaces(cleaned_data, "Nome")
     expect = "BANCO DO BRASIL"
     assert cleaned_data.first()['Nome'] == expect
+
+
+def test_group_by_name(session):
+    columns = ["name", "rate"]
+    data = [("banco do brasil", 5), ("banco do brasil", 10), ("itau", 4)]
+    df = session.createDataFrame(data).toDF(*columns)
+    grouped = main.group_by_name(df=df, colum_to_group="name", colum_to_sum="rate")
+    assert grouped.first()["sum(rate)"] == 15
+
+
+def test_join_tables(session):
+    table_one_columns = ['nome_banco', 'cnpj', 'classificacao', 'indice_satisfacao_funcionarios']
+    table_one_data = [('banco do brasil', '1111111', 's1', '80')]
+    table_df = session.createDataFrame(table_one_data).toDF(*table_one_columns)
+
+    table_two_columns = ['nome_banco', 'indice_reclamacoes']
+    table_two_data = [('banco do brasil', '20')]
+    table_one_df = session.createDataFrame(table_two_data).toDF(*table_two_columns)
+
+    table_two_columns = ['nome_banco', 'indice_satisfacao_salarios']
+    table_two_data = [('banco do brasil', '70')]
+    table_two_df = session.createDataFrame(table_two_data).toDF(*table_two_columns)
+
+    tables_to_join = [(table_one_df, "nome_banco"), (table_two_df, "nome_banco")]
+
+    result = main.join_tables(table_df, tables_to_join)
+    expect = [
+        'nome_banco',
+        'cnpj',
+        'classificacao',
+        'indice_satisfacao_funcionarios',
+        'indice_reclamacoes',
+        'indice_satisfacao_salarios'
+    ]
+    assert result.columns == expect
