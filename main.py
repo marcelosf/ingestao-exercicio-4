@@ -5,6 +5,7 @@ from pyspark.sql.functions import split, col, trim
 
 
 SOURCES_DIR = os.path.join(os.getcwd(), "sources")
+OUTPUT = os.path.join(os.getcwd(), "output")
 
 
 def get_spark_session():
@@ -77,3 +78,14 @@ def join_tables(main_table: DataFrame, tables_to_join: List[DataFrame]) -> DataF
         main_table = main_table.join(table, column, "outer")
     print(main_table.columns)
     return main_table
+
+
+def preprocess_data():
+    bancos_data = extract_bancos_data()
+    bancos_data = clean_banco_name(bancos_data)
+    bancos_data = rename_columns(bancos_data, {"Segmento": "segmento", "CNPJ": "cnpj", "Nome": "nome"})
+    bancos_data.write.mode("overwrite").parquet(os.path.join(OUTPUT, "preprocess/bancos/bancos.parquet"))
+
+
+if __name__ == "__main__":
+    preprocess_data()
