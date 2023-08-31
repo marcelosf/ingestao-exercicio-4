@@ -6,6 +6,8 @@ from pyspark.sql.functions import split, col, trim
 
 SOURCES_DIR = os.path.join(os.getcwd(), "sources")
 OUTPUT = os.path.join(os.getcwd(), "output")
+PREPROCESS_BANCO_PATH = "preprocess/bancos/bancos.parquet"
+PREPROCESS_EMPREGADOS_PATH = "preprocess/empregados/empregados.parquet"
 
 
 def get_spark_session():
@@ -28,26 +30,25 @@ def match(name1: str, name2: str):
     return part_to_compare in name2
 
 
-def extract_data(path: str, delimiter: str, encoding=None):
-    session = get_spark_session()
+def extract_data(path: str, delimiter: str, session, encoding=None):
     path = os.path.join(SOURCES_DIR, path)
     data = read_source(session, path, delimiter=delimiter, encoding=encoding)
-    return data    
+    return data
 
 
-def extract_bancos_data():
-    return extract_data(path="Bancos", delimiter="\t")
+def extract_bancos_data(session):
+    return extract_data(path="Bancos", delimiter="\t", session=session)
 
 
-def extract_reclamacoes_data():
-    return extract_data(path="Reclamacoes", delimiter=";", encoding="ISO-8859-1")
+def extract_reclamacoes_data(session):
+    return extract_data(path="Reclamacoes", delimiter=";", encoding="ISO-8859-1", session=session)
 
 
-def extract_empregados_data():
-    return extract_data(path="Empregados", delimiter="|")
+def extract_empregados_data(session):
+    return extract_data(path="Empregados", delimiter="|", session=session)
 
 
-def rename_columns(df: DataFrame, columns_to_rename: list):
+def rename_columns(df: DataFrame, columns_to_rename: dict):
     with_columns_renamed = df.withColumnsRenamed(columns_to_rename)
     return with_columns_renamed
 
@@ -80,12 +81,28 @@ def join_tables(main_table: DataFrame, tables_to_join: List[DataFrame]) -> DataF
     return main_table
 
 
-def preprocess_data():
-    bancos_data = extract_bancos_data()
+def write_to_parquet(df: DataFrame, path):
+    df.write.mode("overwrite").parquet(os.path.join(OUTPUT, path))
+
+
+def preprocess_bancos_data(session):
+    bancos_data = extract_bancos_data(session)
     bancos_data = clean_banco_name(bancos_data)
     bancos_data = rename_columns(bancos_data, {"Segmento": "segmento", "CNPJ": "cnpj", "Nome": "nome"})
-    bancos_data.write.mode("overwrite").parquet(os.path.join(OUTPUT, "preprocess/bancos/bancos.parquet"))
+    bancos_data = remove_spaces(df=bancos_data, column="nome")
+    write_to_parquet(df=bancos_data, path=PREPROCESS_BANCO_PATH)
+
+
+def preprocess_empregados_data(session):
+    empregados_data = extract_empregados_data(session)
+    write_to_parquet(df=empregados_data, path=PREPROCESS_EMPREGADOS_PATH)
+
+
+def run():
+    session = get_spark_session()
+    preprocess_bancos_data(session)
+    preprocess_empregados_data(session)
 
 
 if __name__ == "__main__":
-    preprocess_data()
+    run()
