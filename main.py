@@ -1,8 +1,8 @@
 import os
 from typing import List
-from pyspark.sql.types import StringType, BooleanType
+from spellchecker import SpellChecker
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.functions import split, col, trim, sum, udf
+from pyspark.sql.functions import split, col, trim, sum
 from decouple import config
 
 
@@ -49,7 +49,6 @@ def read_source(session: SparkSession, path: str, delimiter: str, encoding=None,
 
 
 def match(name1: str, name2: str) -> bool:
-    breakpoint()
     parts = name1.split("�")
     part_to_compare = parts[-1]
 
@@ -125,6 +124,19 @@ def convert_column_data_type(df: DataFrame, columns_type: List[tuple]) -> DataFr
     return df
 
 
+def correct_misspeled_text(text: str):
+    spell = SpellChecker(language="pt")
+    words = text.split()
+    corrected_words = list()
+    for word in words:
+        if "�" in word:
+            corrected_words.append(spell.correction(word))
+        else:
+            corrected_words.append(word)
+        corrected_text = " ".join(corrected_words)
+    return corrected_text.upper()
+
+
 def write_to_parquet(df: DataFrame, path):
     df.write.mode("overwrite").parquet(os.path.join(OUTPUT, path))
 
@@ -159,24 +171,11 @@ def preprocess_reclamacoes_data(session):
     write_to_parquet(df=reclamacoes_data, path=PREPROCESS_RECLAMACOES_PATH)
 
 
-def merge_tables():
-    session = get_spark_session()
-    session.udf.register("match_data", match, BooleanType())
-
-    bancos_df = session.read.parquet(os.path.join(OUTPUT, PREPROCESS_BANCO_PATH))
-    empregados_df = session.read.parquet(os.path.join(OUTPUT, PREPROCESS_EMPREGADOS_PATH))
-
-    bancos_df.join(empregados_df, (match(bancos_df.nome, empregados_df.nome) == True)).show()
-
-    write_to_parquet(bancos_df, AVALIABLE_DATA)
-
-
 def run():
     session = get_spark_session()
     preprocess_bancos_data(session)
     preprocess_empregados_data(session)
     preprocess_reclamacoes_data(session)
-    merge_tables()
 
 
 if __name__ == "__main__":

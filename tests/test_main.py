@@ -139,3 +139,10 @@ def test_convert_column_types(session):
     expect = [StringType(), FloatType(), IntegerType(), IntegerType()]
     columns = [field.dataType for field in result.schema.fields]
     assert columns == expect
+
+
+def test_correct_misspeled_words():
+    text = "COOPERATIVA DE CR�DITO DE LIVRE ADMISS�O DE ASSOCIADOS SERRO AZUL - SICREDI UNI�O RS"
+    expect = "COOPERATIVA DE CRÉDITO DE LIVRE ADMISSÃO DE ASSOCIADOS SERRO AZUL - SICREDI UNIÃO RS"
+    actual = main.correct_misspeled_text(text)
+    assert actual == expect
