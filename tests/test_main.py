@@ -1,10 +1,10 @@
 import os
-from .. import main
+import main
 from pyspark.sql import SparkSession
 from pyspark.sql.types import IntegerType, FloatType, StringType
 
 
-from ..schemas import reclamacoes_schema
+from schemas import reclamacoes_schema
 
 
 BASE_DIR = os.getcwd()
@@ -146,3 +146,15 @@ def test_correct_misspeled_words():
     expect = "COOPERATIVA DE CRÉDITO DE LIVRE ADMISSÃO DE ASSOCIADOS SERRO AZUL - SICREDI UNIÃO RS"
     actual = main.correct_misspeled_text(text)
     assert actual == expect
+
+
+def test_fix_misspeled_dataframe_column(session):
+    table_columns = ['segmento', 'nome', 'cnpj']
+    table_data = [
+        ('S1', 'CENTRAL DAS COOPERATIVAS DE CR�DITO', 22222),
+        ('S2', 'ADMISS�O DE ASSOCIADOS', 33333)
+    ]
+    table = session.createDataFrame(table_data).toDF(*table_columns)
+    fixed = main.fix_misspeled_dataframe_column(df=table, column_to_fix="nome")
+    fixed.show()
+    assert fixed.first()["nome"] == "CENTRAL DAS COOPERATIVAS DE CRÉDITO"

@@ -2,7 +2,7 @@ import os
 from typing import List
 from spellchecker import SpellChecker
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.functions import split, col, trim, sum
+from pyspark.sql.functions import split, col, trim, sum, udf
 from decouple import config
 
 
@@ -127,14 +127,27 @@ def convert_column_data_type(df: DataFrame, columns_type: List[tuple]) -> DataFr
 def correct_misspeled_text(text: str):
     spell = SpellChecker(language="pt")
     words = text.split()
+    print(words)
     corrected_words = list()
     for word in words:
-        if "�" in word:
+        if "�" in word and spell.correction(word):
             corrected_words.append(spell.correction(word))
         else:
             corrected_words.append(word)
+    if len(corrected_words) > 0:
         corrected_text = " ".join(corrected_words)
-    return corrected_text.upper()
+        return corrected_text.upper()
+    return 
+
+
+@udf
+def fix_column_spell(text: str):
+    return correct_misspeled_text(text)
+
+
+def fix_misspeled_dataframe_column(df: DataFrame, column_to_fix):
+    fixed = df.withColumn(column_to_fix, fix_column_spell(column_to_fix))
+    return fixed
 
 
 def write_to_parquet(df: DataFrame, path):
@@ -148,6 +161,7 @@ def preprocess_bancos_data(session):
     bancos_data = remove_spaces(df=bancos_data, column="nome")
     columns_type = [("segmento", "string"), ("cnpj", "string"), ("nome", "string")]
     bancos_data = convert_column_data_type(df=bancos_data, columns_type=columns_type)
+    bancos_data = fix_misspeled_dataframe_column(df=bancos_data, column_to_fix="nome")
     write_to_parquet(df=bancos_data, path=PREPROCESS_BANCO_PATH)
 
 
